@@ -1,0 +1,38 @@
+# Hydra configuration defaults
+defaults:
+  - scraper: instagram
+  - storage: default
+  - _self_
+
+# Input settings
+input:
+  source_dir: /Users/joon/Documents/Obsidian/02_INBOX/_Hub/_Creative/GP
+  file_pattern: "*.md"
+  recursive: true
+
+# Output settings
+output:
+  data_dir: ./data
+  download_media: true
+  thumbnail_size: [200, 200]
+  overwrite_existing: false
+
+# Scraper settings
+scraper:
+  timeout: 30
+  retry_count: 3
+  concurrent_requests: 5
+  delay_min: 1.0
+  delay_max: 3.0
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+
+# Validator settings
+validator:
+  timeout: 10
+  cache_ttl: 86400  # 24 hours
+
+# Viewer settings
+viewer:
+  host: localhost
+  port: 8080
+  debug: false

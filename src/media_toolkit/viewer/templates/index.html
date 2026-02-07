@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Collector</title>
+    <link rel="stylesheet" href="/static/style.css?v=2.2">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">📱</span>
+                    Social Media Collector
+                </h1>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="검색..." class="search-input">
+                    <button class="search-btn" onclick="searchPosts()">🔍</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Task Progress Bar -->
+        <div class="task-progress" id="taskProgress" style="display: none;">
+            <div class="task-info">
+                <span class="task-name" id="taskName">작업 중...</span>
+                <span class="task-detail" id="taskDetail">0/0</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <span class="task-message" id="taskMessage"></span>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-item">
+                <span class="stat-value" id="statTotal">-</span>
+                <span class="stat-label">전체</span>
+            </div>
+            <div class="stat-item stat-accessible">
+                <span class="stat-value" id="statAccessible">-</span>
+                <span class="stat-label">접근가능</span>
+            </div>
+            <div class="stat-item stat-private" onclick="filterByStatus('private')" style="cursor:pointer">
+                <span class="stat-value" id="statPrivate">-</span>
+                <span class="stat-label">비공개</span>
+            </div>
+            <div class="stat-item stat-deleted" onclick="filterByStatus('deleted')" style="cursor:pointer">
+                <span class="stat-value" id="statDeleted">-</span>
+                <span class="stat-label">삭제됨</span>
+            </div>
+            <div class="stat-item stat-pending" onclick="filterByStatus('pending')" style="cursor:pointer">
+                <span class="stat-value" id="statPending">-</span>
+                <span class="stat-label">대기중</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- App Header -->
+                <div class="sidebar-header">
+                    <h2>Collector</h2>
+                    <button class="btn-icon" onclick="openAnalyticsModal()" title="통계 및 분석">📊</button>
+                    <button class="btn-icon" onclick="openConfigModal()" title="설정">⚙️</button>
+                </div>
+
+                <!-- Step 1: Source Directory -->
+                <div class="filter-section workflow-section">
+                    <h3 class="filter-title">📁 Step 1. 소스 경로</h3>
+                    <div class="source-path-group">
+                        <input type="text" id="sourceDirInput" class="source-input" placeholder="/path/to/md/files">
+                        <button class="btn btn-small" onclick="updateSourceDir()">저장</button>
+                    </div>
+                    <div class="source-info" id="sourceInfo">
+                        <!-- Source info will be shown here -->
+                    </div>
+                </div>
+
+                <!-- Step 2: Scan MD Files -->
+                <div class="filter-section workflow-section">
+                    <h3 class="filter-title">📄 Step 2. MD 파일 스캔</h3>
+                    <p class="step-desc">MD 파일에서 URL을 추출합니다</p>
+                    <button class="btn btn-workflow" onclick="scanMdFiles()">
+                        📥 MD 파일 스캔
+                    </button>
+                    <div class="scan-result" id="scanResult"></div>
+                </div>
+
+                <!-- Step 3: Validate & Scrape -->
+                <div class="filter-section workflow-section">
+                    <h3 class="filter-title">🔍 Step 3. URL 정보 조회</h3>
+                    <p class="step-desc">URL 접근성 확인 및 메타데이터 수집</p>
+                    <button class="btn btn-workflow" onclick="validateAndScrape()">
+                        🔍 정보 조회 시작
+                    </button>
+                </div>
+
+                <!-- Inaccessible URLs Alert -->
+                <div class="filter-section alert-section" id="inaccessibleSection" style="display:none">
+                    <h3 class="filter-title">⚠️ 접근 불가 URL</h3>
+                    <div class="inaccessible-info" id="inaccessibleInfo">
+                        <span class="alert-count" id="inaccessibleCount">0</span>개 URL이 접근 불가합니다
+                    </div>
+                    <button class="btn btn-alert" onclick="showInaccessibleList()">
+                        📋 목록 보기
+                    </button>
+                </div>
+
+                <hr class="sidebar-divider">
+
+                <!-- Filters -->
+                <div class="filter-section">
+                    <h3 class="filter-title">필터</h3>
+                    <div class="filter-options" id="statusFilters">
+                        <label class="filter-option">
+                            <input type="checkbox" value="accessible" onchange="applyFilters()">
+                            <span class="status-dot accessible"></span> 접근가능
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="private" onchange="applyFilters()">
+                            <span class="status-dot private"></span> 비공개
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="deleted" onchange="applyFilters()">
+                            <span class="status-dot deleted"></span> 삭제됨
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="failed" onchange="applyFilters()">
+                            <span class="status-dot deleted" style="background:var(--status-deleted)"></span> 실패
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="pending" onchange="applyFilters()">
+                            <span class="status-dot pending"></span> 대기중
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3 class="filter-title">플랫폼</h3>
+                    <div class="filter-options" id="platformFilters">
+                        <label class="filter-option">
+                            <input type="checkbox" value="instagram" onchange="applyFilters()">
+                            📷 Instagram
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="facebook" onchange="applyFilters()">
+                            📘 Facebook
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="threads" onchange="applyFilters()">
+                            🧵 Threads
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="linkedin" onchange="applyFilters()">
+                            💼 LinkedIn
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3 class="filter-title">미디어 유형</h3>
+                    <div class="filter-options" id="mediaFilters">
+                        <label class="filter-option">
+                            <input type="checkbox" value="image" onchange="applyFilters()">
+                            🖼️ 이미지
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="video" onchange="applyFilters()">
+                            🎥 동영상
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" value="carousel" onchange="applyFilters()">
+                            📑 캐러셀
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3 class="filter-title">태그</h3>
+                    <div class="input-group">
+                        <input type="text" id="tagFilter" class="form-input" placeholder="태그 검색... (Enter)"
+                            onkeyup="if(event.key === 'Enter') applyFilters()">
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>게시자</label>
+                    <div class="multi-select-dropdown" id="authorDropdown">
+                        <div class="select-trigger" onclick="toggleAuthorDropdown()">
+                            <span id="authorSelectLabel">전체</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="select-options" id="authorOptions">
+                            <input type="text" class="search-input" placeholder="검색..."
+                                onkeyup="filterAuthorOptions(this.value)" onclick="event.stopPropagation()">
+                            <div class="options-list" id="authorList">
+                                <!-- Checkboxes injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="clearFilters()">필터 초기화</button>
+            </aside>
+
+            <!-- Posts Grid -->
+            <div class="content">
+                <div class="selection-bar" id="selectionBar">
+                    <div class="selection-info">
+                        <span class="selection-count" id="selectionCount">0</span>개 선택됨
+                    </div>
+                    <div class="selection-actions">
+                        <button class="btn btn-sm btn-select-all" onclick="selectAll()">전체 선택</button>
+                        <button class="btn btn-sm btn-info" id="downloadSelectedBtn" onclick="downloadSelectedPosts()"
+                            disabled>📥 다운로드</button>
+                        <button class="btn btn-sm btn-danger" id="deleteSelectedBtn" onclick="deleteSelectedPosts()"
+                            disabled>🗑️ 삭제</button>
+                        <button class="btn btn-sm btn-link" onclick="clearSelection()">취소</button>
+                    </div>
+                </div>
+
+                <div class="content-header" id="contentHeader">
+                    <div class="view-toggle">
+                        <button class="view-btn active" id="gridViewBtn" onclick="setView('grid')">▦</button>
+                        <button class="view-btn" id="listViewBtn" onclick="setView('list')">≡</button>
+                    </div>
+                    <div class="sort-options">
+                        <select id="limitSelect" class="sort-select" onchange="changeLimit()">
+                            <option value="50">50개씩</option>
+                            <option value="100">100개씩</option>
+                            <option value="200">200개씩</option>
+                            <option value="500">500개씩</option>
+                        </select>
+                        <select id="sortSelect" class="sort-select" onchange="applyFilters()">
+                            <option value="scraped_at">수집일순</option>
+                            <option value="posted_at">게시일순</option>
+                            <option value="views">조회수순</option>
+                            <option value="likes">좋아요순</option>
+                            <option value="comments">댓글순</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="posts-container" id="postsContainer">
+                    <!-- Posts will be rendered here -->
+                </div>
+
+                <div class="pagination" id="pagination">
+                    <!-- Pagination controls -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Post Detail Modal -->
+        <div class="modal" id="postModal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <div class="modal-body" id="modalBody">
+                    <!-- Post details will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Inaccessible List Modal -->
+        <div class="modal" id="inaccessibleModal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeInaccessibleModal()">&times;</button>
+                <div class="modal-body">
+                    <h2>⚠️ 접근 불가 URL 목록</h2>
+                    <p class="modal-subtitle">아래 URL은 비공개이거나 삭제되었습니다</p>
+                    <div id="inaccessibleList" class="inaccessible-list">
+                        <!-- Inaccessible URLs will be listed here -->
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="exportInaccessible()">📥 CSV 내보내기</button>
+                        <button class="btn btn-primary" onclick="closeInaccessibleModal()">닫기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan Result Modal -->
+        <div class="modal" id="scanResultModal">
+            <div class="modal-content scan-result-modal">
+                <button class="modal-close" onclick="closeScanResultModal()">&times;</button>
+                <div class="modal-body">
+                    <h2>📄 스캔 결과</h2>
+
+                    <!-- Stats Summary -->
+                    <div class="scan-stats" id="scanStats">
+                        <!-- Stats will be rendered here -->
+                    </div>
+
+                    <!-- Platform Breakdown -->
+                    <div class="scan-section">
+                        <h3>📊 플랫폼별 통계</h3>
+                        <div class="platform-stats" id="platformStats">
+                            <!-- Platform breakdown -->
+                        </div>
+                    </div>
+
+                    <!-- URL List Tabs -->
+                    <div class="scan-tabs">
+                        <button class="tab-btn active" onclick="showScanTab('urls')">🔗 URL 목록</button>
+                        <button class="tab-btn" onclick="showScanTab('duplicates')">🔄 중복 URL</button>
+                    </div>
+
+                    <!-- URL List -->
+                    <div class="scan-tab-content" id="urlsTab">
+                        <div class="url-list" id="scannedUrlList">
+                            <!-- URLs will be listed here -->
+                        </div>
+                    </div>
+
+                    <!-- Duplicates List -->
+                    <div class="scan-tab-content" id="duplicatesTab" style="display:none">
+                        <div class="url-list" id="duplicateUrlList">
+                            <!-- Duplicates will be listed here -->
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" onclick="closeScanResultModal()">확인</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config Modal -->
+        <div class="modal" id="configModal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeConfigModal()">&times;</button>
+                <div class="modal-body">
+                    <h2>⚙️ 설정</h2>
+
+                    <div class="config-section">
+                        <h3>Instagram 인증</h3>
+                        <p class="config-desc">Instagram 메타데이터 수집을 위해 로그인이 필요합니다.</p>
+
+                        <div class="form-group">
+                            <label>인증 방식</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input type="radio" name="authType" value="browser" checked
+                                        onchange="toggleAuthType()">
+                                    브라우저 쿠키 사용
+                                </label>
+                                <label>
+                                    <input type="radio" name="authType" value="file" onchange="toggleAuthType()">
+                                    쿠키 파일 사용
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="browserAuthSection" class="config-auth-section">
+                            <div class="form-group">
+                                <label for="browserSelect">브라우저 선택</label>
+                                <select id="browserSelect" class="form-select">
+                                    <option value="chrome">Google Chrome</option>
+                                    <option value="firefox">Firefox</option>
+                                    <option value="safari">Safari</option>
+                                    <option value="edge">Edge</option>
+                                    <option value="opera">Opera</option>
+                                </select>
+                                <p class="help-text">선택한 브라우저에 Instagram이 로그인되어 있어야 합니다.</p>
+                            </div>
+                        </div>
+
+                        <div id="fileAuthSection" class="config-auth-section" style="display:none">
+                            <div class="form-group">
+                                <label for="cookiePathInput">쿠키 파일 경로 (Netscape format)</label>
+                                <div class="input-group">
+                                    <input type="text" id="cookiePathInput" class="form-input"
+                                        placeholder="/path/to/cookies.txt">
+                                </div>
+                                <p class="help-text">Extenstion 등으로 추출한 cookies.txt 파일 경로를 입력하세요.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" onclick="saveConfig()">저장</button>
+                        <button class="btn btn-secondary" onclick="closeConfigModal()">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Modal -->
+        <div class="modal" id="analyticsModal">
+            <div class="modal-content" style="max-width: 900px;">
+                <button class="modal-close" onclick="closeAnalyticsModal()">&times;</button>
+                <div class="modal-body">
+                    <h2>📊 데이터 분석</h2>
+
+                    <div class="analytics-section">
+                        <h3>🏆 상위 게시자 (Top Authors)</h3>
+                        <div class="table-container">
+                            <table class="analytics-table" id="authorStatsTable">
+                                <thead>
+                                    <tr>
+                                        <th>게시자</th>
+                                        <th>포스트 수</th>
+                                        <th>총 좋아요</th>
+                                        <th>총 댓글</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <div class="analytics-section">
+                            <h3>📱 플랫폼 비율</h3>
+                            <div class="chart-bar-container" id="platformChart"></div>
+                        </div>
+                        <div class="analytics-section">
+                            <h3>📂 미디어 유형 비율</h3>
+                            <div class="chart-bar-container" id="mediaTypeChart"></div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" onclick="closeAnalyticsModal()">닫기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script src="/static/app.js?v=2.2"></script>
+</body>
+
+</html>

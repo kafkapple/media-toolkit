@@ -1,0 +1,20 @@
+# Facebook scraper configuration
+platform: facebook
+base_url: https://www.facebook.com
+
+# Patterns for URL matching
+url_patterns:
+  - "facebook.com/share/r/"
+  - "facebook.com/share/v/"
+  - "facebook.com/watch/"
+  - "facebook.com/reel/"
+
+# Fields to extract
+extract_fields:
+  - author
+  - content
+  - posted_at
+  - reactions
+  - shares
+  - thumbnail
+  - media_url

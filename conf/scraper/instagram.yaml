@@ -1,0 +1,19 @@
+# Instagram scraper configuration
+platform: instagram
+base_url: https://www.instagram.com
+
+# Patterns for URL matching
+url_patterns:
+  - "instagram.com/reel/"
+  - "instagram.com/p/"
+  - "instagram.com/stories/"
+
+# Fields to extract
+extract_fields:
+  - author
+  - caption
+  - posted_at
+  - likes
+  - views
+  - thumbnail
+  - media_url

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Collector (V2)</title>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #181b21;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #3b82f6;
+            --radius: 8px;
+            --border: #2d333b;
+        }
+
+        body {
+            font-family: sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* V2 Gallery Grid - FORCE NEW STYLES */
+        .v2-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            padding-bottom: 50px;
+        }
+
+        .v2-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .v2-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .v2-media {
+            width: 100%;
+            height: 500px;
+            /* FIXED HEIGHT 500PX */
+            background: #000;
+            position: relative;
+        }
+
+        .v2-media img,
+        .v2-media video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .v2-content {
+            padding: 15px;
+        }
+
+        .v2-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .v2-meta {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        /* Table View */
+        .v2-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .v2-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .v2-table th,
+        .v2-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .v2-table th {
+            background: var(--card-bg);
+        }
+
+        .v2-thumb-small {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        /* Modal */
+        .v2-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .v2-modal.active {
+            display: flex;
+        }
+
+        .v2-modal-content {
+            background: var(--card-bg);
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            border-radius: var(--radius);
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .v2-gallery-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scroll-snap-type: x mandatory;
+        }
+
+        .v2-gallery-item {
+            flex: 0 0 100%;
+            height: 500px;
+            object-fit: contain;
+            scroll-snap-align: center;
+            background: #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1 style="margin-bottom: 20px;">Media Collector V2</h1>
+    <div style="margin-bottom: 20px;">
+        <button onclick="switchView('grid')">Grid View (Gallery)</button>
+        <button onclick="switchView('list')">List View (Table)</button>
+        <span style="margin-left: 20px; color: #888;">If you see this, cache is bypassed.</span>
+    </div>
+
+    <div id="app-container" class="v2-gallery">Loading...</div>
+
+    <!-- Modal -->
+    <div id="modal" class="v2-modal" onclick="closeModal()">
+        <div class="v2-modal-content" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" style="float:right;">Close</button>
+            <h2 id="m-title"></h2>
+            <div id="m-media" class="v2-gallery-scroll"></div>
+            <p id="m-meta"></p>
+            <div id="m-body" style="white-space: pre-wrap; margin-top: 20px; color: #ccc;"></div>
+            <a id="m-link" href="#" target="_blank" style="display:block; margin-top:20px; color: var(--accent);">Open
+                Original</a>
+        </div>
+    </div>
+
+    <!-- DATA SOURCE -->
+    <script src="data/data.js"></script>
+
+    <script>
+        let view = 'grid';
+        const container = document.getElementById('app-container');
+        const posts = window.POSTS_DATA || [];
+
+        function init() {
+            console.log("Init V2", posts.length);
+            if (posts.length === 0) {
+                container.innerHTML = "<h3>No data found. properly run 'python run.py' or check data/data.js</h3>";
+                return;
+            }
+            render();
+        }
+
+        function switchView(v) {
+            view = v;
+            render();
+        }
+
+        function render() {
+            container.innerHTML = '';
+            if (view === 'grid') {
+                container.className = 'v2-gallery';
+                posts.forEach(post => {
+                    const el = document.createElement('div');
+                    el.className = 'v2-card';
+
+                    let media = '';
+                    if (post.thumbnail_path) media = `<img src="${post.thumbnail_path}" loading="lazy">`;
+                    else if (post.thumbnail_url) media = `<img src="${post.thumbnail_url}" loading="lazy">`;
+                    else media = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">No Image</div>`;
+
+                    el.innerHTML = `
+                        <div class="v2-media">${media}</div>
+                        <div class="v2-content">
+                            <div class="v2-title">${post.title || post.author || 'Untitled'}</div>
+                            <div class="v2-meta">${post.platform}</div>
+                        </div>
+                    `;
+                    el.onclick = () => openModal(post);
+                    container.appendChild(el);
+                });
+            } else {
+                container.className = 'v2-list';
+                let html = `<table class="v2-table"><thead><tr><th>Img</th><th>Title</th><th>Platform</th><th>Stat</th></tr></thead><tbody>`;
+                posts.forEach(post => {
+                    let thumb = post.thumbnail_path ? `<img src="${post.thumbnail_path}" class="v2-thumb-small">` : '';
+                    html += `<tr onclick="openModal('${post.id}')">
+                        <td>${thumb}</td>
+                        <td>${post.title || 'Untitled'}</td>
+                        <td>${post.platform}</td>
+                        <td>${post.views || 0}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+
+                // Add click listeners to rows (simplified for string injection)
+                const rows = container.querySelectorAll('tbody tr');
+                rows.forEach((r, i) => r.onclick = () => openModal(posts[i]));
+            }
+        }
+
+        function openModal(post) {
+            document.getElementById('m-title').innerText = post.title || post.author;
+            document.getElementById('m-link').href = post.url;
+
+            const mMedia = document.getElementById('m-media');
+            mMedia.innerHTML = '';
+
+            // Multi-image logic
+            let items = [];
+
+            // 1. Local Media Paths
+            if (post.media_paths && post.media_paths.length > 0) {
+                items = post.media_paths.map(p => {
+                    // Convert absolute path to relative if possible, or just filename if in same dir structure
+                    // For static HTML in root, data/media/file.ext works if data structure matches
+                    // We assume data/media structure.
+                    const filename = p.split('/').pop();
+                    return `data/media/${filename}`;
+                });
+            }
+            // 2. Remote URLs
+            else if (post.media_urls && post.media_urls.length > 0) {
+                items = post.media_urls;
+            }
+            // 3. Thumbnail Fallback
+            else if (post.thumbnail_path) {
+                items = [post.thumbnail_path];
+            }
+
+            if (items.length > 0) {
+                items.forEach(src => {
+                    const isVideo = src.match(/\.(mp4|mov|webm)$/i);
+                    if (isVideo) {
+                        mMedia.innerHTML += `<video src="${src}" controls class="v2-gallery-item"></video>`;
+                    } else {
+                        mMedia.innerHTML += `<img src="${src}" class="v2-gallery-item">`;
+                    }
+                });
+            } else {
+                mMedia.innerHTML = 'No Media';
+            }
+
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // Auto start
+        window.onload = init;
+    </script>
+</body>
+
+</html>

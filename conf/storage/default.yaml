@@ -1,0 +1,13 @@
+# Default storage configuration
+backend: json
+
+# File paths (relative to data_dir)
+posts_dir: posts
+media_dir: media
+thumbnails_dir: thumbnails
+stats_file: stats.json
+index_file: index.json
+
+# Options
+pretty_print: true
+backup_on_update: false
